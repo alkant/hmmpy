@@ -2,6 +2,16 @@
 
 This is a simple implementation of discrete hidden markov models for Python > 2.5. It is currently written in pure python but will eventually be cythonized for cutting edge performances.
 
+# Features
+
+* Supervised (explicit) learning - no regularization
+* Viterbi inference
+
+The following features are out-of-scope:
+
+* Unsupervised learning (Baum-Welch)
+* Regularization
+
 # Basic usage
 
 	>>> from hmmpy import hmm
@@ -11,3 +21,4 @@ This is a simple implementation of discrete hidden markov models for Python > 2.
 	>>> m.explicit_learn(observations, ground_truths)
 	>>> m.viterbi(observations[1])
 	([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0], -21.944735122525493)
+
