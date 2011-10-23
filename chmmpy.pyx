@@ -146,4 +146,21 @@ cdef class hmm:
         for i in xrange(N-2, -1, -1):
             best[i]=backtrack[i+1][best[i+1]]
 
+        #free memory before leaving
+        for i in xrange(N):
+                free(tab[i])
+                free(backtrack[i])
+        free(tab)
+        free(backtrack)
+
         return best, llike
+
+        def __del__(self):
+                cdef int i=0
+                for i in range(nStates):
+                        free(self.t[i])
+                        free(self.e[i])
+                        i+=1
+                free(self.t)
+                free(self.e)
+                free(self.pi)
