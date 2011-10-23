@@ -1,5 +1,32 @@
 from __future__ import division
 from math import log
+from copy import deepcopy
+
+def fromtables(pi, t, e):
+    """Constructs a HMM from probability tables.
+
+    Parameters
+    ----------
+    pi: list of floats between 0 and 1
+        Initial state probabilities p(s_0)=pi[s_0].
+    t: list of list of floats between 0 and 1
+        Transition matrix p(s_j|s_i)=t[s_i][s_j].
+    e: list of list of floats between 0 and 1
+        Emission matrix p(o_i|s_i)=e[s_i][o_i]."""
+
+    #sanity checks
+    nStates=len(pi)
+    assert(nStates==len(t) and nStates==len(e) and nStates>0)
+    nObs=len(e[0])
+    for i in range(nStates):
+        assert(len(t[i])==nStates and len(e[i])==nObs)
+
+    m=hmm(nStates, nObs)
+    m.pi=deepcopy(pi)
+    m.t=deepcopy(t)
+    m.e=deepcopy(e)
+
+    return m
 
 class hmm:
     def __init__(self, nStates, nObs):

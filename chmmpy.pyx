@@ -5,12 +5,42 @@ from libc.math cimport log
 cdef float MIN_FLOAT = float('-inf')
 
 cdef float csum(float* tab, int n):
-        cdef int i=0
-        cdef float res=0
-        while i<n:
-                res+=tab[i]
-                i+=1
-        return res
+    cdef int i=0
+    cdef float res=0
+    while i<n:
+        res+=tab[i]
+        i+=1
+    return res
+
+def fromtables(list pi, list t, list e):
+    """Constructs a HMM from probability tables.
+
+    Parameters
+    ----------
+    pi: list of floats between 0 and 1
+        Initial state probabilities p(s_0)=pi[s_0].
+    t: list of list of floats between 0 and 1
+        Transition matrix p(s_j|s_i)=t[s_i][s_j].
+    e: list of list of floats between 0 and 1
+        Emission matrix p(o_i|s_i)=e[s_i][o_i]."""
+
+    cdef int i, j
+        
+    #sanity checks
+    nStates=len(pi)
+    assert(nStates==len(t) and nStates==len(e) and nStates>0)
+    nObs=len(e[0])
+    for i in range(nStates):
+        assert(len(t[i])==nStates and len(e[i])==nObs)
+
+    m=hmm(nStates, nObs)
+    for i in range(nStates):
+        m.pi[i]=pi[i]
+        for j in range(nStates):
+            m.t[i][j]=t[i][j]
+        for j in range(nObs):
+            m.e[i][j]=e[i][j]
+    return m
 
 cdef class hmm:
     cdef public int nStates, nObs
@@ -155,12 +185,11 @@ cdef class hmm:
 
         return best, llike
 
-        def __del__(self):
-                cdef int i=0
-                for i in range(nStates):
-                        free(self.t[i])
-                        free(self.e[i])
-                        i+=1
-                free(self.t)
-                free(self.e)
-                free(self.pi)
+    def __del__(self):
+        cdef int i=0
+        for i in range(self.nStates):
+            free(self.t[i])
+            free(self.e[i])
+        free(self.t)
+        free(self.e)
+        free(self.pi)
