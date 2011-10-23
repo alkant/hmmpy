@@ -1,6 +1,6 @@
 # Summary
 
-This is a simple implementation of discrete hidden markov models for Python > 2.5. Both pure Python and Cython implementations are maintened. The Cython module is 10x (learning) to 30x (inference) faster than the Python implementation, but you'll need to compile it.
+This is a simple implementation of discrete hidden markov models for Python > 2.5. Both pure Python and Cython implementations are maintained. The Cython module is 10x (learning) to 30x (inference) faster than the Python implementation, but you'll need to compile it.
 
 # Features
 
