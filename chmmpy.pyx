@@ -45,9 +45,13 @@ def fromtables(list pi, list t, list e):
 cdef class hmm:
     cdef public int nStates, nObs
     cdef bool logdomain
-    cdef float* pi
-    cdef float** t
-    cdef float** e
+    cdef float* pi #initial state probas
+    cdef float** t #transition probas
+    cdef float** e #emission probas
+    
+    cdef float** tab #cached viterbi table
+    cdef int** backtrack #cached viterbi backtrack table
+    cdef int seqSize #size of the cached viterbi tables
 
     def __init__(self, int nStates, int nObs):
         """HMM constructor.
@@ -70,6 +74,7 @@ cdef class hmm:
         self.nStates=nStates
         self.nObs=nObs
         self.logdomain=False
+        self.seqSize=-1
 
     def learn(self, list observations, list ground_truths):
         """Learns from a list of observation sequences and their associated ground truth.
@@ -124,6 +129,27 @@ cdef class hmm:
                     self.e[i][j]=MIN_FLOAT
         self.logdomain=True
 
+    cdef void __init_viterbi_tables(self, int n):
+        """Initialize viterbi cache."""
+        self.flush()
+        self.tab = <float**> malloc(n*sizeof(float*))
+        self.backtrack = <int**> malloc(n*sizeof(int*))
+        cdef int i
+        for i in xrange(n):
+            self.tab[i] = <float*> malloc(self.nStates*sizeof(float))
+            self.backtrack[i] = <int*> malloc(self.nStates*sizeof(int))
+        self.seqSize=n
+
+    def flush(self):
+        """Free cached memory of viterbi inference."""
+        if self.seqSize<1: return
+        cdef int i
+        for i in xrange(self.seqSize):
+            free(self.tab[i])
+            free(self.backtrack[i])
+        free(self.tab)
+        free(self.backtrack)
+
     def viterbi(self, list observation):
         """Viterbi inference of the highest likelihood hidden states sequence given the observations. Time complexity is O(|observation|*nStates^2).
         
@@ -137,56 +163,48 @@ cdef class hmm:
             Highest likelihood infered sequence of hidden states.
         loglike: negative float
             Loglikelihood of the model for that sequence."""
-        cdef int N=len(observation)
-        cdef float** tab = <float**> malloc(N*sizeof(float*))
-        cdef int** backtrack = <int**> malloc(N*sizeof(float*))
+        cdef int n=len(observation)
         cdef int i, j, s, smax
-        cdef float maxval, cs, llike
-        for i in xrange(N):
-                tab[i] = <float*> malloc(self.nStates*sizeof(float))
-                backtrack[i] = <int*> malloc(self.nStates*sizeof(int))
-        
+        cdef float maxval, llike, cs
+
+        if n>self.seqSize:
+            self.__init_viterbi_tables(n)
+
         if not self.logdomain:
             self.__convert_to_log()
 
         for i in range(self.nStates):
-            tab[0][i]=self.e[i][observation[0]]+self.pi[i]
+            self.tab[0][i]=self.e[i][observation[0]]+self.pi[i]
         
-        for i in xrange(1,N):
+        for i in xrange(1,n):
             for j in range(self.nStates):
                 smax=-1
                 maxval=MIN_FLOAT
                 for s in range(self.nStates):
-                    cs=tab[i-1][s]+self.t[s][j]
+                    cs=self.tab[i-1][s]+self.t[s][j]
                     if cs>maxval:
                         smax=s
                         maxval=cs
-                tab[i][j]=self.e[j][observation[i]]+maxval
-                backtrack[i][j]=smax
+                self.tab[i][j]=self.e[j][observation[i]]+maxval
+                self.backtrack[i][j]=smax
 
         smax=-1
         llike=MIN_FLOAT
         for s in range(self.nStates):
-            if llike<tab[N-1][s]:
-                llike=tab[N-1][s]
+            if llike<self.tab[n-1][s]:
+                llike=self.tab[n-1][s]
                 smax=s
 
-        best=[0]*N
-        best[N-1]=smax
-        for i in xrange(N-2, -1, -1):
-            best[i]=backtrack[i+1][best[i+1]]
-
-        #free memory before leaving
-        for i in xrange(N):
-                free(tab[i])
-                free(backtrack[i])
-        free(tab)
-        free(backtrack)
+        best=[0]*n
+        best[n-1]=smax
+        for i in xrange(n-2, -1, -1):
+            best[i]=self.backtrack[i+1][best[i+1]]
 
         return best, llike
 
     def __del__(self):
-        cdef int i=0
+        self.flush()
+        cdef int i
         for i in range(self.nStates):
             free(self.t[i])
             free(self.e[i])
