@@ -150,12 +150,13 @@ cdef class hmm:
         free(self.tab)
         free(self.backtrack)
 
-    def viterbi(self, list observation):
+    def viterbi(self, list obs):
         """Viterbi inference of the highest likelihood hidden states sequence given the observations. Time complexity is O(|observation|*nStates^2).
         
         Parameters
         ----------
-        observation: List of integers in {0, ..., nObs-1}.
+        obs: List of integers in {0, ..., nObs-1}
+            The observations.
 
         Returns
         -------
@@ -163,9 +164,15 @@ cdef class hmm:
             Highest likelihood infered sequence of hidden states.
         loglike: negative float
             Loglikelihood of the model for that sequence."""
-        cdef int n=len(observation)
+        cdef int n=len(obs)
         cdef int i, j, s, smax
         cdef float maxval, llike, cs
+
+        cdef int* observation= <int*> malloc(n*sizeof(int))
+        i=0
+        for val in obs:
+            observation[i]=val
+            i+=1
 
         if n>self.seqSize:
             self.__init_viterbi_tables(n)
@@ -195,12 +202,18 @@ cdef class hmm:
                 llike=self.tab[n-1][s]
                 smax=s
 
-        best=[0]*n
+        cdef int* best= <int*> malloc(n*sizeof(int))
         best[n-1]=smax
         for i in xrange(n-2, -1, -1):
             best[i]=self.backtrack[i+1][best[i+1]]
+        
+        lbest=[0]*n
+        for i in xrange(n):
+            lbest[i]=best[i]
 
-        return best, llike
+        free(observation)
+        free(best)
+        return lbest, llike
 
     def __del__(self):
         self.flush()
