@@ -4,13 +4,8 @@ This is a simple implementation of discrete hidden markov models for Python > 2.
 
 # Features
 
-* Supervised learning - no regularization
+* Supervised learning
 * Viterbi inference
-
-The following features are out-of-scope:
-
-* Unsupervised learning (Baum-Welch)
-* Regularization
 
 # Building the Cython module
 
